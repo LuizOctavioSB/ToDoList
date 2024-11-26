@@ -15,6 +15,7 @@
     <main>
         <div id="message"></div>
 
+        <!-- Formulário para adicionar novas tarefas -->
         <div class="task-input">
             <input type="text" id="new-task" placeholder="Adicionar nova tarefa">
             <input type="date" id="task-date" placeholder="Data Limite">
@@ -22,26 +23,35 @@
             <button id="add-task">Adicionar Tarefa</button>
         </div>
 
-        <ul id="task-list">
+        <!-- Lista de Tarefas Pendentes -->
+        <h2>Tarefas Pendentes</h2>
+        <ul id="task-list-pending">
             <!-- Tarefas pendentes serão inseridas aqui -->
         </ul>
 
-        <ul id="completed-task-list">
+        <!-- Botão para mostrar/ocultar tarefas concluídas -->
+        <div class="toggle-completed">
+            <button id="toggle-completed">Mostrar Tarefas Concluídas</button>
+        </div>
+
+        <!-- Lista de Tarefas Concluídas (inicialmente oculta via CSS) -->
+        <h2>Tarefas Concluídas</h2>
+        <ul id="task-list-completed">
             <!-- Tarefas concluídas serão inseridas aqui -->
         </ul>
 
-    </main>
-
-    <!-- Modal de Confirmação -->
-    <div id="confirmation-modal" class="modal">
-        <div class="modal-content">
-            <p>Tem certeza que deseja excluir esta tarefa?</p>
-            <div class="modal-actions">
-                <button id="confirm-delete" class="modal-confirm-button">Excluir</button>
-                <button id="cancel-delete" class="modal-cancel-button">Cancelar</button>
+        <!-- Modal de Confirmação de Exclusão -->
+        <div id="confirmation-modal" class="modal">
+            <div class="modal-content">
+                <p>Tem certeza que deseja excluir esta tarefa?</p>
+                <div class="modal-actions">
+                    <button id="confirm-delete" class="modal-confirm-button">Excluir</button>
+                    <button id="cancel-delete" class="modal-cancel-button">Cancelar</button>
+                </div>
             </div>
         </div>
-    </div>
+
+    </main>
 
     <script src="assets/js/script.js"></script>
 </body>
