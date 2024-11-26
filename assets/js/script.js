@@ -118,11 +118,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 return response.json();
             })
             .then(data => {
-                if (Array.isArray(data)) {
-                    tasks = data;
-                    renderTasks();
-                } else if (data.error) {
-                    messageDiv.textContent = data.error;
+                if (data.pendentes && data.concluidas) {
+                    // Combinar as tarefas pendentes e concluídas em uma única lista para facilitar o gerenciamento
+                    tasks = [...data.pendentes, ...data.concluidas.map(t => ({ ...t, concluida: true }))];
+                    renderTasks(data.pendentes, data.concluidas);
+                } else {
+                    messageDiv.textContent = 'Dados de tarefas inválidos.';
                 }
             })
             .catch(error => {
@@ -136,23 +137,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Função para renderizar as tarefas
-    function renderTasks() {
+    function renderTasks(pendentes, concluidas) {
         // Limpar listas atuais
         taskListPending.innerHTML = '';
         taskListCompleted.innerHTML = '';
 
-        // Separar tarefas em pendentes e concluídas
-        const pendingTasks = tasks.filter(task => !task.concluida);
-        const completedTasks = tasks.filter(task => task.concluida);
-
         // Renderizar tarefas pendentes
-        pendingTasks.forEach(task => {
+        pendentes.forEach(task => {
             const li = createTaskElement(task, false);
             taskListPending.appendChild(li);
         });
 
         // Renderizar tarefas concluídas
-        completedTasks.forEach(task => {
+        concluidas.forEach(task => {
             const li = createTaskElement(task, true);
             taskListCompleted.appendChild(li);
         });
@@ -174,8 +171,11 @@ document.addEventListener('DOMContentLoaded', () => {
         checkbox.type = 'checkbox';
         checkbox.className = 'task-checkbox';
         checkbox.checked = isCompleted ? true : false;
+        checkbox.disabled = isCompleted ? true : false; // Desabilitar checkbox para tarefas concluídas
         checkbox.addEventListener('change', () => {
-            toggleTaskCompletion(task.id, checkbox.checked);
+            if (!isCompleted) {
+                toggleTaskCompletion(task.id, checkbox.checked);
+            }
         });
 
         // Nome da tarefa
@@ -184,15 +184,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (checkbox.checked) {
             nameElement.classList.add('completed');
         }
-
-        // Atualizar classe ao marcar/desmarcar
-        checkbox.addEventListener('change', () => {
-            if (checkbox.checked) {
-                nameElement.classList.add('completed');
-            } else {
-                nameElement.classList.remove('completed');
-            }
-        });
 
         // Detalhes da tarefa
         const detailsDiv = document.createElement('div');

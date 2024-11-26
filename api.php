@@ -22,12 +22,25 @@ $action = $_GET['action'] ?? '';
 
 switch ($action) {
     case 'list':
-        // Listar todas as tarefas ordenadas por 'concluida' e 'ordem_apresentacao'
+        // Listar todas as tarefas pendentes e concluídas
         try {
-            $stmt = $pdo->prepare('SELECT id, nome, custo, data_limite, concluida FROM tarefas ORDER BY concluida ASC, ordem_apresentacao ASC');
+            // Obter tarefas pendentes
+            $stmt = $pdo->prepare('SELECT id, nome, custo, data_limite, ordem_apresentacao FROM tarefas ORDER BY ordem_apresentacao ASC');
             $stmt->execute();
-            $tarefas = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            echo json_encode($tarefas);
+            $tarefas_pendentes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Obter tarefas concluídas
+            $stmt = $pdo->prepare('SELECT id, nome, custo, data_limite, ordem_apresentacao FROM tarefas_concluidas ORDER BY ordem_apresentacao ASC');
+            $stmt->execute();
+            $tarefas_concluidas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Combinar os resultados
+            $result = [
+                'pendentes' => $tarefas_pendentes,
+                'concluidas' => $tarefas_concluidas
+            ];
+
+            echo json_encode($result);
         } catch (Exception $e) {
             error_log("Erro ao listar tarefas: " . $e->getMessage());
             returnError('Erro ao listar tarefas.', 500);
@@ -35,7 +48,7 @@ switch ($action) {
         break;
 
     case 'add':
-        // Adicionar uma nova tarefa
+        // Adicionar uma nova tarefa na tabela 'tarefas'
         $data = json_decode(file_get_contents('php://input'), true);
         $nome = trim($data['nome'] ?? '');
         $custo = floatval($data['custo'] ?? 0);
@@ -46,11 +59,11 @@ switch ($action) {
         }
 
         try {
-            // Verificar duplicação de nome (case insensitive)
+            // Verificar duplicação de nome na tabela 'tarefas' (case insensitive)
             $stmt = $pdo->prepare('SELECT COUNT(*) FROM tarefas WHERE LOWER(nome) = LOWER(?)');
             $stmt->execute([$nome]);
             if ($stmt->fetchColumn() > 0) {
-                returnError('Já existe uma tarefa com esse nome.', 400);
+                returnError('Já existe uma tarefa pendente com esse nome.', 400);
             }
 
             // Obter a próxima ordem de apresentação
@@ -58,8 +71,8 @@ switch ($action) {
             $stmt->execute();
             $ordem = intval($stmt->fetchColumn());
 
-            // Inserir a nova tarefa
-            $stmt = $pdo->prepare('INSERT INTO tarefas (nome, custo, data_limite, ordem_apresentacao, concluida) VALUES (?, ?, ?, ?, FALSE)');
+            // Inserir a nova tarefa na tabela 'tarefas'
+            $stmt = $pdo->prepare('INSERT INTO tarefas (nome, custo, data_limite, ordem_apresentacao) VALUES (?, ?, ?, ?)');
             $stmt->execute([$nome, $custo, $data_limite, $ordem]);
 
             echo json_encode(['success' => true]);
@@ -70,7 +83,7 @@ switch ($action) {
         break;
 
     case 'update':
-        // Atualizar uma tarefa existente
+        // Atualizar uma tarefa existente na tabela 'tarefas'
         $data = json_decode(file_get_contents('php://input'), true);
         $id = intval($data['id'] ?? 0);
         $nome = trim($data['nome'] ?? '');
@@ -86,21 +99,21 @@ switch ($action) {
         }
 
         try {
-            // Verificar se a tarefa existe
+            // Verificar se a tarefa existe na tabela 'tarefas'
             $stmt = $pdo->prepare('SELECT COUNT(*) FROM tarefas WHERE id = ?');
             $stmt->execute([$id]);
             if ($stmt->fetchColumn() == 0) {
-                returnError('Tarefa não encontrada.', 404);
+                returnError('Tarefa pendente não encontrada.', 404);
             }
 
-            // Verificar duplicação de nome (case insensitive), excluindo a tarefa atual
+            // Verificar duplicação de nome na tabela 'tarefas' (case insensitive), excluindo a tarefa atual
             $stmt = $pdo->prepare('SELECT COUNT(*) FROM tarefas WHERE LOWER(nome) = LOWER(?) AND id != ?');
             $stmt->execute([$nome, $id]);
             if ($stmt->fetchColumn() > 0) {
-                returnError('Já existe uma tarefa com esse nome.', 400);
+                returnError('Já existe uma tarefa pendente com esse nome.', 400);
             }
 
-            // Atualizar a tarefa
+            // Atualizar a tarefa na tabela 'tarefas'
             $stmt = $pdo->prepare('UPDATE tarefas SET nome = ?, custo = ?, data_limite = ? WHERE id = ?');
             $stmt->execute([$nome, $custo, $data_limite, $id]);
 
@@ -112,7 +125,7 @@ switch ($action) {
         break;
 
     case 'delete':
-        // Excluir uma tarefa
+        // Excluir uma tarefa de qualquer tabela
         $data = json_decode(file_get_contents('php://input'), true);
         $id = intval($data['id'] ?? 0);
 
@@ -121,42 +134,78 @@ switch ($action) {
         }
 
         try {
-            // Verificar se a tarefa existe
-            $stmt = $pdo->prepare('SELECT concluida, ordem_apresentacao FROM tarefas WHERE id = ?');
+            // Verificar se a tarefa existe na tabela 'tarefas'
+            $stmt = $pdo->prepare('SELECT concluida FROM tarefas WHERE id = ?');
             $stmt->execute([$id]);
             $tarefa = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$tarefa) {
-                returnError('Tarefa não encontrada.', 404);
-            }
+            if ($tarefa) {
+                // Excluir da tabela 'tarefas'
+                $stmt = $pdo->prepare('DELETE FROM tarefas WHERE id = ?');
+                $stmt->execute([$id]);
 
-            // Excluir a tarefa
-            $stmt = $pdo->prepare('DELETE FROM tarefas WHERE id = ?');
-            $stmt->execute([$id]);
+                // Reordenar as tarefas pendentes para manter a sequência
+                $stmt = $pdo->prepare('SELECT id FROM tarefas ORDER BY ordem_apresentacao ASC');
+                $stmt->execute();
+                $tarefas_pendentes = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-            // Reordenar as tarefas após a exclusão para manter a sequência
-            // Primeiro, obter todas as tarefas, ordenadas por 'concluida' ASC e 'ordem_apresentacao' ASC
-            $stmt = $pdo->prepare('SELECT id FROM tarefas ORDER BY concluida ASC, ordem_apresentacao ASC');
-            $stmt->execute();
-            $tarefas = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-            // Iniciar transação
-            $pdo->beginTransaction();
-            try {
-                $ordem = 1;
-                foreach ($tarefas as $tarefa_id) {
-                    $stmt_update = $pdo->prepare('UPDATE tarefas SET ordem_apresentacao = ? WHERE id = ?');
-                    $stmt_update->execute([$ordem, $tarefa_id]);
-                    $ordem++;
+                // Iniciar transação
+                $pdo->beginTransaction();
+                try {
+                    $ordem = 1;
+                    foreach ($tarefas_pendentes as $tarefa_id) {
+                        $stmt_update = $pdo->prepare('UPDATE tarefas SET ordem_apresentacao = ? WHERE id = ?');
+                        $stmt_update->execute([$ordem, $tarefa_id]);
+                        $ordem++;
+                    }
+                    $pdo->commit();
+                } catch (Exception $e) {
+                    $pdo->rollBack();
+                    error_log("Erro ao reordenar tarefas após exclusão: " . $e->getMessage());
+                    returnError('Erro ao reordenar tarefas após exclusão.', 500);
                 }
-                $pdo->commit();
-            } catch (Exception $e) {
-                $pdo->rollBack();
-                error_log("Erro ao reordenar tarefas após exclusão: " . $e->getMessage());
-                returnError('Erro ao reordenar tarefas após exclusão.', 500);
+
+                echo json_encode(['success' => true]);
+                exit();
             }
 
-            echo json_encode(['success' => true]);
+            // Verificar se a tarefa existe na tabela 'tarefas_concluidas'
+            $stmt = $pdo->prepare('SELECT COUNT(*) FROM tarefas_concluidas WHERE id = ?');
+            $stmt->execute([$id]);
+            $tarefa_concluida = $stmt->fetchColumn();
+
+            if ($tarefa_concluida > 0) {
+                // Excluir da tabela 'tarefas_concluidas'
+                $stmt = $pdo->prepare('DELETE FROM tarefas_concluidas WHERE id = ?');
+                $stmt->execute([$id]);
+
+                // Reordenar as tarefas concluídas para manter a sequência
+                $stmt = $pdo->prepare('SELECT id FROM tarefas_concluidas ORDER BY ordem_apresentacao ASC');
+                $stmt->execute();
+                $tarefas_concluidas = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+                // Iniciar transação
+                $pdo->beginTransaction();
+                try {
+                    $ordem = 1;
+                    foreach ($tarefas_concluidas as $tarefa_id) {
+                        $stmt_update = $pdo->prepare('UPDATE tarefas_concluidas SET ordem_apresentacao = ? WHERE id = ?');
+                        $stmt_update->execute([$ordem, $tarefa_id]);
+                        $ordem++;
+                    }
+                    $pdo->commit();
+                } catch (Exception $e) {
+                    $pdo->rollBack();
+                    error_log("Erro ao reordenar tarefas concluídas após exclusão: " . $e->getMessage());
+                    returnError('Erro ao reordenar tarefas concluídas após exclusão.', 500);
+                }
+
+                echo json_encode(['success' => true]);
+                exit();
+            }
+
+            // Se a tarefa não foi encontrada em nenhuma tabela
+            returnError('Tarefa não encontrada em nenhuma tabela.', 404);
         } catch (Exception $e) {
             error_log("Erro ao excluir tarefa: " . $e->getMessage());
             returnError('Erro ao excluir tarefa.', 500);
@@ -164,7 +213,7 @@ switch ($action) {
         break;
 
     case 'toggle':
-        // Alternar o status de conclusão da tarefa
+        // Alternar o status de conclusão da tarefa entre 'tarefas' e 'tarefas_concluidas'
         $data = json_decode(file_get_contents('php://input'), true);
         $id = intval($data['id'] ?? 0);
         $concluida = isset($data['concluida']) ? boolval($data['concluida']) : false;
@@ -174,42 +223,106 @@ switch ($action) {
         }
 
         try {
-            // Verificar se a tarefa existe
-            $stmt = $pdo->prepare('SELECT concluida FROM tarefas WHERE id = ?');
-            $stmt->execute([$id]);
-            $tarefa = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($concluida) {
+                // Marcar como concluída: mover de 'tarefas' para 'tarefas_concluidas'
 
-            if (!$tarefa) {
-                returnError('Tarefa não encontrada.', 404);
-            }
+                // Obter os detalhes da tarefa pendente
+                $stmt = $pdo->prepare('SELECT nome, custo, data_limite, ordem_apresentacao FROM tarefas WHERE id = ?');
+                $stmt->execute([$id]);
+                $tarefa = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            // Atualizar o status de conclusão
-            $stmt = $pdo->prepare('UPDATE tarefas SET concluida = ? WHERE id = ?');
-            $stmt->execute([$concluida, $id]);
-
-            // Reordenar todas as tarefas após a mudança de status
-            // Primeiro, obter todas as tarefas ordenadas por 'concluida' ASC e 'ordem_apresentacao' ASC
-            $stmt = $pdo->prepare('SELECT id FROM tarefas ORDER BY concluida ASC, ordem_apresentacao ASC');
-            $stmt->execute();
-            $tarefas = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-            // Iniciar transação
-            $pdo->beginTransaction();
-            try {
-                $ordem = 1;
-                foreach ($tarefas as $tarefa_id) {
-                    $stmt_update = $pdo->prepare('UPDATE tarefas SET ordem_apresentacao = ? WHERE id = ?');
-                    $stmt_update->execute([$ordem, $tarefa_id]);
-                    $ordem++;
+                if (!$tarefa) {
+                    returnError('Tarefa pendente não encontrada.', 404);
                 }
-                $pdo->commit();
-            } catch (Exception $e) {
-                $pdo->rollBack();
-                error_log("Erro ao reordenar tarefas após alternar status: " . $e->getMessage());
-                returnError('Erro ao reordenar tarefas após alternar status.', 500);
-            }
 
-            echo json_encode(['success' => true]);
+                // **Remover a verificação de duplicação na tabela 'tarefas_concluidas'**
+                // Como agora permitimos múltiplas tarefas concluídas com o mesmo nome, não precisamos verificar
+
+                // Iniciar transação
+                $pdo->beginTransaction();
+                try {
+                    // Inserir na tabela 'tarefas_concluidas'
+                    $stmt = $pdo->prepare('INSERT INTO tarefas_concluidas (nome, custo, data_limite, ordem_apresentacao, concluida) VALUES (?, ?, ?, ?, TRUE)');
+                    $stmt->execute([$tarefa['nome'], $tarefa['custo'], $tarefa['data_limite'], $tarefa['ordem_apresentacao']]);
+
+                    // Remover da tabela 'tarefas'
+                    $stmt = $pdo->prepare('DELETE FROM tarefas WHERE id = ?');
+                    $stmt->execute([$id]);
+
+                    // Reordenar as tarefas pendentes na tabela 'tarefas' para manter a sequência
+                    $stmt = $pdo->prepare('SELECT id FROM tarefas ORDER BY ordem_apresentacao ASC');
+                    $stmt->execute();
+                    $tarefas_pendentes = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+                    $ordem = 1;
+                    $stmt_update = $pdo->prepare('UPDATE tarefas SET ordem_apresentacao = ? WHERE id = ?');
+                    foreach ($tarefas_pendentes as $tarefa_id) {
+                        $stmt_update->execute([$ordem, $tarefa_id]);
+                        $ordem++;
+                    }
+
+                    $pdo->commit();
+                    echo json_encode(['success' => true]);
+                } catch (Exception $e) {
+                    $pdo->rollBack();
+                    error_log("Erro ao marcar tarefa como concluída: " . $e->getMessage());
+                    returnError('Erro ao marcar tarefa como concluída.', 500);
+                }
+            } else {
+                // Marcar como pendente: mover de 'tarefas_concluidas' para 'tarefas'
+
+                // Obter os detalhes da tarefa concluída
+                $stmt = $pdo->prepare('SELECT nome, custo, data_limite, ordem_apresentacao FROM tarefas_concluidas WHERE id = ?');
+                $stmt->execute([$id]);
+                $tarefa = $stmt->fetch(PDO::FETCH_ASSOC);
+
+                if (!$tarefa) {
+                    returnError('Tarefa concluída não encontrada.', 404);
+                }
+
+                // Verificar se já existe uma tarefa pendente com o mesmo nome
+                $stmt = $pdo->prepare('SELECT COUNT(*) FROM tarefas WHERE LOWER(nome) = LOWER(?)');
+                $stmt->execute([$tarefa['nome']]);
+                if ($stmt->fetchColumn() > 0) {
+                    returnError('Já existe uma tarefa pendente com esse nome. Não é possível mover a tarefa de volta.', 400);
+                }
+
+                // Iniciar transação
+                $pdo->beginTransaction();
+                try {
+                    // Obter a próxima ordem de apresentação na tabela 'tarefas'
+                    $stmt = $pdo->prepare('SELECT COALESCE(MAX(ordem_apresentacao), 0) + 1 FROM tarefas');
+                    $stmt->execute();
+                    $ordem = intval($stmt->fetchColumn());
+
+                    // Inserir na tabela 'tarefas'
+                    $stmt = $pdo->prepare('INSERT INTO tarefas (nome, custo, data_limite, ordem_apresentacao) VALUES (?, ?, ?, ?)');
+                    $stmt->execute([$tarefa['nome'], $tarefa['custo'], $tarefa['data_limite'], $ordem]);
+
+                    // Remover da tabela 'tarefas_concluidas'
+                    $stmt = $pdo->prepare('DELETE FROM tarefas_concluidas WHERE id = ?');
+                    $stmt->execute([$id]);
+
+                    // Reordenar as tarefas concluídas na tabela 'tarefas_concluidas' para manter a sequência
+                    $stmt = $pdo->prepare('SELECT id FROM tarefas_concluidas ORDER BY ordem_apresentacao ASC');
+                    $stmt->execute();
+                    $tarefas_concluidas = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+                    $ordem_concluida = 1;
+                    $stmt_update = $pdo->prepare('UPDATE tarefas_concluidas SET ordem_apresentacao = ? WHERE id = ?');
+                    foreach ($tarefas_concluidas as $tarefa_id) {
+                        $stmt_update->execute([$ordem_concluida, $tarefa_id]);
+                        $ordem_concluida++;
+                    }
+
+                    $pdo->commit();
+                    echo json_encode(['success' => true]);
+                } catch (Exception $e) {
+                    $pdo->rollBack();
+                    error_log("Erro ao marcar tarefa como pendente: " . $e->getMessage());
+                    returnError('Erro ao marcar tarefa como pendente.', 500);
+                }
+            }
         } catch (Exception $e) {
             error_log("Erro ao alternar status da tarefa: " . $e->getMessage());
             returnError('Erro ao alternar status da tarefa.', 500);
@@ -217,7 +330,7 @@ switch ($action) {
         break;
 
     case 'reorder':
-        // Atualizar a ordem de apresentação das tarefas pendentes e concluídas de forma única
+        // Atualizar a ordem de apresentação das tarefas pendentes de forma única
         $data = json_decode(file_get_contents('php://input'), true);
         $pendingIds = $data['ids'] ?? [];
 
@@ -229,18 +342,18 @@ switch ($action) {
         try {
             // Verificar se todos os IDs existem e são tarefas pendentes
             $placeholders = rtrim(str_repeat('?,', count($pendingIds)), ',');
-            $stmt = $pdo->prepare("SELECT id FROM tarefas WHERE id IN ($placeholders) AND concluida = FALSE");
+            $stmt = $pdo->prepare("SELECT id FROM tarefas WHERE id IN ($placeholders)");
             $stmt->execute($pendingIds);
             $existingPendingIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-            // Identificar IDs que não existem ou são concluídas
+            // Identificar IDs que não existem ou não são pendentes
             $invalidIds = array_diff($pendingIds, $existingPendingIds);
             if (!empty($invalidIds)) {
                 returnError('Alguns IDs de tarefas pendentes não foram encontrados: ' . implode(', ', $invalidIds), 400);
             }
 
             // Obter todas as tarefas concluídas ordenadas por 'ordem_apresentacao' ASC
-            $stmt = $pdo->prepare('SELECT id FROM tarefas WHERE concluida = TRUE ORDER BY ordem_apresentacao ASC');
+            $stmt = $pdo->prepare('SELECT id FROM tarefas_concluidas ORDER BY ordem_apresentacao ASC');
             $stmt->execute();
             $completedIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
