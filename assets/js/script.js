@@ -555,27 +555,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const pendingTasks = tasks.filter(task => !task.concluida);
             pendingTasks.splice(targetIndex, 0, pendingTasks.splice(draggedIndex, 1)[0]);
 
-            // Atualizar a ordem de apresentação para todas as tarefas pendentes
-            const updatedPendingTasks = pendingTasks.map((task, index) => ({
-                ...task,
-                ordem_apresentacao: index + 1
-            }));
-
-            // Obter as tarefas concluídas sem alterar sua ordem de apresentação
-            const completedTasks = tasks.filter(task => task.concluida);
-
-            // Reunir todas as tarefas (pendentes atualizadas + concluídas)
-            const updatedTasks = [
-                ...updatedPendingTasks,
-                ...completedTasks
-            ];
-
-            // Atualizar a variável global de tarefas
-            tasks = updatedTasks;
-
-            // Atualizar a ordem no backend apenas para as tarefas pendentes
-            const pendingIds = updatedPendingTasks.map(task => task.id);
-            console.log('Reordering Pending IDs:', pendingIds); // Log dos IDs reordenados
+            // Obter apenas os IDs das tarefas pendentes na nova ordem
+            const pendingIds = pendingTasks.map(task => task.id);
+            console.log('Reordering Pending IDs:', pendingIds);
 
             // Verificar se todos os IDs são únicos
             const uniqueIds = new Set(pendingIds);
@@ -585,6 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Enviar apenas os IDs pendentes reordenados para o backend
             fetch('api.php?action=reorder', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -598,7 +581,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
                 .then(data => {
                     if (data.success) {
-                        renderTasks();
+                        loadTasks();
                         console.log('Ordem das tarefas pendentes atualizada com sucesso.');
                     } else if (data.error) {
                         messageDiv.textContent = data.error;
