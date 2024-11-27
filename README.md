@@ -21,7 +21,6 @@ O **Sistema de Lista de Tarefas** é uma aplicação web que permite aos usuári
 
 ## Tecnologias Utilizadas
 
-<<<<<<< HEAD
 - **Frontend:**
   - HTML5
   - CSS3
@@ -102,9 +101,3 @@ O **Sistema de Lista de Tarefas** é uma aplicação web que permite aos usuári
 - **Sanitização de entradas:** Todas as entradas de usuário são sanitizadas com `htmlspecialchars` e `strip_tags` para evitar XSS.
 - **Prepared Statements:** Todas as consultas ao banco de dados utilizam `PDO::prepare` para evitar injeções SQL.
 - **Validação de dados:** Verificação de formatos válidos para datas e limites de comprimento nos campos de texto.
-=======
-Tecnologias Utilizadas:
-HTML5
-CSS3
-JavaScript (ES6+)
->>>>>>> b2f4d330196ba9dc7105c542ac05ce22428b67d6
