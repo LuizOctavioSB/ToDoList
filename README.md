@@ -28,5 +28,3 @@ Tecnologias Utilizadas:
 HTML5
 CSS3
 JavaScript (ES6+)
-
-Atualmente, o projeto utiliza o Local Storage para armazenar as tarefas. Futuramente, será implementado um backend com banco de dados para persistência dos dados, conforme os requisitos especificados.
