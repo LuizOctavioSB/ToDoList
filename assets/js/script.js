@@ -6,30 +6,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const taskListPending = document.getElementById('task-list-pending');
     const taskListCompleted = document.getElementById('task-list-completed');
     const messageDiv = document.getElementById('message');
-
-    // Selecionar elementos do modal
     const confirmationModal = document.getElementById('confirmation-modal');
     const confirmDeleteButton = document.getElementById('confirm-delete');
     const cancelDeleteButton = document.getElementById('cancel-delete');
-
-    // Botão para mostrar/ocultar tarefas concluídas
     const toggleCompletedButton = document.getElementById('toggle-completed');
-    let showCompleted = false; // Estado inicial: ocultar tarefas concluídas
-
+    let showCompleted = false;
     let tasks = [];
     let currentTaskToDelete = null;
 
-    // Adicionar evento para formatar o custo enquanto digita
     taskCostInput.addEventListener('input', formatCostInput);
 
-    // Eventos dos botões do modal
     confirmDeleteButton.addEventListener('click', confirmDeletion);
     cancelDeleteButton.addEventListener('click', hideConfirmationModal);
 
-    // Carregar tarefas ao iniciar
     loadTasks();
 
-    // Eventos
     addTaskButton.addEventListener('click', addTask);
 
     taskInput.addEventListener('keypress', function (e) {
@@ -119,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(data => {
                 if (data.pendentes && data.concluidas) {
-                    // Combinar as tarefas pendentes e concluídas em uma única lista para facilitar o gerenciamento
                     tasks = [...data.pendentes, ...data.concluidas.map(t => ({ ...t, concluida: true }))];
                     renderTasks(data.pendentes, data.concluidas);
                 } else {
@@ -160,52 +150,60 @@ document.addEventListener('DOMContentLoaded', () => {
         const li = document.createElement('li');
         li.className = 'task-item';
         li.dataset.id = task.id;
-
+    
         // Destacar tarefas com custo >= R$1.000,00
-        if (parseFloat(task.custo) >= 1000) {
+        if (task.custo !== undefined && parseFloat(task.custo) >= 1000) {
             li.style.backgroundColor = '#fff4e5'; // Fundo amarelo claro
         }
-
-        // Criar o checkbox
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.className = 'task-checkbox';
-        checkbox.checked = isCompleted ? true : false;
-        checkbox.disabled = isCompleted ? true : false; // Desabilitar checkbox para tarefas concluídas
-        checkbox.addEventListener('change', () => {
-            if (!isCompleted) {
+    
+        // Criar o checkbox apenas para tarefas pendentes
+        if (!isCompleted) {
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'task-checkbox';
+            checkbox.checked = false;
+            checkbox.addEventListener('change', () => {
                 toggleTaskCompletion(task.id, checkbox.checked);
-            }
-        });
-
+            });
+            li.appendChild(checkbox);
+        }
+    
         // Nome da tarefa
         const nameElement = document.createElement('span');
         nameElement.textContent = task.nome;
-        if (checkbox.checked) {
+        if (isCompleted) {
             nameElement.classList.add('completed');
         }
-
+        li.appendChild(nameElement);
+    
         // Detalhes da tarefa
         const detailsDiv = document.createElement('div');
         detailsDiv.className = 'task-details';
-
-        if (task.data_limite) {
+    
+        // Adicionar data limite, se presente
+        if (task.data_limite && task.data_limite !== '0000-00-00') {
             const dateSpan = document.createElement('span');
             dateSpan.textContent = 'Data Limite: ' + formatDate(task.data_limite);
             detailsDiv.appendChild(dateSpan);
         }
-
-        if (task.custo !== null && task.custo !== undefined) {
+    
+        // Adicionar custo, se presente
+        if (task.custo !== undefined && task.custo > 0) {
             const costSpan = document.createElement('span');
             costSpan.textContent = 'Custo: R$ ' + formatCostToDisplay(task.custo);
             detailsDiv.appendChild(costSpan);
         }
-
+    
+        // Adicionar os detalhes somente se houver informações
+        if (detailsDiv.childNodes.length > 0) {
+            li.appendChild(detailsDiv);
+        }
+    
         // Div para botões de ação
         const actionsDiv = document.createElement('div');
         actionsDiv.className = 'task-actions';
-
-        // Botão de editar (apenas se a tarefa NÃO estiver concluída)
+    
+        // Botão de editar (apenas para tarefas pendentes)
         if (!isCompleted) {
             const editButton = document.createElement('button');
             const editIcon = document.createElement('img');
@@ -217,74 +215,58 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             actionsDiv.appendChild(editButton);
         }
-
-        // Botão de excluir (apenas se a tarefa NÃO estiver concluída)
-        if (!isCompleted) {
-            const deleteButton = document.createElement('button');
-            const deleteIcon = document.createElement('img');
+    
+        // Botão de excluir (para todas as tarefas)
+        const deleteButton = document.createElement('button');
+        const deleteIcon = document.createElement('img');
             deleteIcon.src = 'assets/icons/delete.svg';
-            deleteIcon.alt = 'Excluir';
-            deleteButton.appendChild(deleteIcon);
-            deleteButton.addEventListener('click', () => {
-                excluirTarefa(task);
-            });
-            actionsDiv.appendChild(deleteButton);
-        }
-
-        // Adicionar elementos ao li
-        li.appendChild(checkbox);
-        li.appendChild(nameElement);
-        li.appendChild(detailsDiv);
+        deleteIcon.alt = 'Excluir';
+        deleteButton.appendChild(deleteIcon);
+        deleteButton.addEventListener('click', () => {
+            excluirTarefa(task);
+        });
+        actionsDiv.appendChild(deleteButton);
+    
         li.appendChild(actionsDiv);
-
+    
         // Aplicar classe 'completed' se a tarefa já estiver concluída
         if (isCompleted) {
             li.classList.add('completed');
         }
-
-        // Tornar o item arrastável (apenas se a tarefa NÃO estiver concluída)
-        if (!isCompleted) {
-            li.setAttribute('draggable', true);
-
-            // Eventos de drag and drop
-            li.addEventListener('dragstart', dragStart);
-            li.addEventListener('dragover', dragOver);
-            li.addEventListener('drop', drop);
-            li.addEventListener('dragend', handleDragEnd);
-        }
-
+    
         return li;
     }
+       
 
-    // Função para alternar o status de conclusão da tarefa
-    function toggleTaskCompletion(taskId, isCompleted) {
+    function toggleTaskCompletion(taskId, isCompleted, checkboxElement) {
         fetch('api.php?action=toggle', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: taskId, concluida: isCompleted })
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                id: taskId,
+                concluida: isCompleted
+            })
         })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => { throw err; });
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (data.success) {
-                    loadTasks();
-                } else if (data.error) {
-                    messageDiv.textContent = data.error;
-                }
-            })
-            .catch(error => {
-                if (error.error) {
-                    messageDiv.textContent = error.error;
-                } else {
-                    messageDiv.textContent = 'Erro ao atualizar status da tarefa.';
-                }
-                console.error('Erro ao atualizar status da tarefa:', error);
-            });
-    }
+        .then(response => response.json().then(data => ({ status: response.status, body: data })))
+        .then(result => {
+            if (result.status === 200 && result.body.success) {
+                // Atualização bem-sucedida, recarregar as tarefas
+                loadTasks(); // Atualiza todas as listas
+                messageDiv.textContent = ''; // Limpar mensagens de erro
+            } else {
+                // Exibir erro e reverter o estado do checkbox
+                messageDiv.textContent = result.body.error || 'Erro ao alternar status da tarefa.';
+                checkboxElement.checked = !isCompleted; // Reverter o estado
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao alternar status da tarefa:', error);
+            messageDiv.textContent = 'Erro ao alternar status da tarefa.';
+            checkboxElement.checked = !isCompleted; // Reverter o estado
+        });
+    }       
 
     // Função para entrar no modo de edição
     function enterEditMode(li, task) {
@@ -399,9 +381,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Função para excluir uma tarefa
     function excluirTarefa(task) {
-        // Armazenar a tarefa a ser excluída
         currentTaskToDelete = task;
-        // Exibir o modal de confirmação
         showConfirmationModal();
     }
 
@@ -454,58 +434,42 @@ document.addEventListener('DOMContentLoaded', () => {
     function formatCostInput(e) {
         let value = e.target.value;
 
-        // Remover todos os caracteres que não sejam dígitos
         value = value.replace(/\D/g, '');
-
-        // Remover zeros à esquerda
         value = value.replace(/^0+/, '');
 
-        // Se não houver valor, não formatar
         if (value.length === 0) {
             e.target.value = '';
             return;
         }
 
-        // Garantir que o valor tenha pelo menos 3 dígitos
         value = value.padStart(3, '0');
 
-        // Separar parte inteira e decimal
         let integerPart = value.slice(0, -2);
         let decimalPart = value.slice(-2);
 
-        // Adicionar pontos como separadores de milhar
         integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
-        // Combinar partes e adicionar vírgula como separador decimal
         let formattedValue = integerPart + ',' + decimalPart;
 
-        // Atualizar o valor do campo de entrada
         e.target.value = formattedValue;
     }
 
     function parseCost(formattedValue) {
-        // Remover pontos (separadores de milhar)
         let value = formattedValue.replace(/\./g, '');
-        // Substituir vírgula por ponto para usar parseFloat corretamente
         value = value.replace(',', '.');
-        // Converter para número
         let numberValue = parseFloat(value);
         return isNaN(numberValue) ? 0 : numberValue;
     }
 
     function formatCostToDisplay(value) {
-        // Verificar se o valor é válido
         if (isNaN(value)) {
             return '0,00';
         }
 
-        // Converter o número para string com duas casas decimais
         let valueString = parseFloat(value).toFixed(2);
 
-        // Substituir ponto por vírgula para separador decimal
         valueString = valueString.replace('.', ',');
 
-        // Adicionar pontos como separadores de milhar
         let parts = valueString.split(',');
         let integerPart = parts[0];
         let decimalPart = parts[1];

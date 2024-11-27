@@ -18,14 +18,12 @@ header h1 {
     font-size: 24px;
 }
 
-/* Estilo da mensagem */
 #message {
     text-align: center;
     color: red;
     margin-bottom: 10px;
 }
 
-/* Estilo da entrada de tarefas */
 .task-input {
     display: flex;
     flex-direction: column;
@@ -47,7 +45,6 @@ header h1 {
     border-bottom-color: #2763ff;
 }
 
-/* Estilo do botão "Adicionar Tarefa" */
 .task-input button {
     width: 420px;
     padding: 15px;
@@ -65,32 +62,14 @@ header h1 {
     background-color: #1a4bb8;
 }
 
-/* Estilo das listas de tarefas */
 #task-list-pending,
-#task-list-completed { /* Atualizado para corresponder ao HTML */
+#task-list-completed {
     list-style-type: none;
     padding: 0;
     max-width: 600px;
     margin: 0 auto;
 }
 
-.task-item.dragging {
-    opacity: 0.5;
-    border: 2px dashed #2763ff;
-}
-
-.task-item.over {
-    border: 2px dashed #1a4bb8;
-}
-
-/* Estilo dos títulos das seções */
-main h2 {
-    text-align: center;
-    margin-top: 30px;
-    color: #2763ff;
-}
-
-/* Estilo dos itens da tarefa */
 .task-item {
     background-color: #fff;
     margin: 5px 0;
@@ -99,22 +78,13 @@ main h2 {
     align-items: center;
     border-radius: 5px;
     transition: background-color 0.2s;
-    animation: fadeIn 0.3s;
-    box-sizing: border-box; /* Garante que o padding seja incluído no tamanho total */
+    box-sizing: border-box;
 }
 
 .task-item:hover {
     background-color: #e6e6e6;
 }
 
-/* Garantir que ambos os tipos de tarefas tenham o mesmo tamanho */
-#task-list-pending .task-item,
-#task-list-completed .task-item {
-    width: 100%; /* Garante que os itens ocupem toda a largura disponível */
-    box-sizing: border-box; /* Inclui padding e border no cálculo de largura */
-}
-
-/* Estilo para o botão "Tarefas Concluídas" */
 .toggle-completed {
     margin: 20px 0;
     text-align: center;
@@ -131,18 +101,10 @@ main h2 {
     transition: background-color 0.3s ease;
 }
 
-.toggle-completed button.active,
-.toggle-completed button:hover { /* Correção no seletor */
+.toggle-completed button:hover {
     background-color: #1a4bb8;
 }
 
-/* Animação na adição de tarefas */
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* Checkbox personalizado */
 .task-item input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
@@ -172,13 +134,11 @@ main h2 {
     transform: translate(-50%, -50%);
 }
 
-/* Estilo do texto da tarefa */
 .task-item span {
     flex-grow: 1;
     font-size: 18px;
 }
 
-/* Estilo dos detalhes da tarefa */
 .task-details {
     display: flex;
     flex-direction: column;
@@ -190,18 +150,19 @@ main h2 {
     font-size: 14px;
 }
 
-/* Estilo dos botões de ação */
 .task-actions {
     display: flex;
     align-items: center;
-    width: 50px; /* Ajuste conforme necessário */
+    justify-content: flex-end;
+    gap: 10px;
+    margin-left: auto;
+    padding: 5px;
+    box-sizing: border-box;
 }
 
 .task-actions > button {
-    background: none;
     border: none;
     cursor: pointer;
-    margin-left: 10px;
     opacity: 0.5;
 }
 
@@ -209,15 +170,13 @@ main h2 {
     opacity: 1;
 }
 
-/* Ícones dos botões */
 .task-actions button img {
     width: 20px;
     height: 20px;
 }
 
-/* Estilo para tarefas concluídas */
 .task-item.completed {
-    opacity: 0.6; /* Deixa a tarefa mais apagada */
+    opacity: 0.6;
 }
 
 .task-item.completed span {
@@ -225,12 +184,6 @@ main h2 {
     color: #888;
 }
 
-/* Esconder botões de ação em tarefas concluídas, mantendo o espaço */
-.task-item.completed .task-actions button {
-    visibility: hidden;
-}
-
-/* Estilo para campos de edição */
 .edit-input {
     width: calc(33% - 10px);
     margin-right: 5px;
@@ -245,14 +198,12 @@ main h2 {
     border-bottom-color: #2763ff;
 }
 
-/* Estilo para o contêiner dos inputs */
 .edit-inputs {
     display: flex;
     flex-grow: 1;
     align-items: center;
 }
 
-/* Estilo para botões de ação na edição */
 .save-button,
 .cancel-button {
     padding: 10px 15px;
@@ -262,46 +213,37 @@ main h2 {
     border: none;
     border-radius: 5px;
     transition: background-color 0.2s;
-    font-weight: bold;
-    color: white; /* Mantido para melhor contraste */
+    color: white;
+    opacity: 1 !important;
 }
 
 .save-button {
     background-color: #2763ff;
 }
 
-.save-button:hover {
-    background-color: #1a4bb8;
-}
-
 .cancel-button {
     background-color: #dc3545;
 }
 
-.cancel-button:hover {
-    background-color: #a71d2a;
-}
-
-/* Estilos para o modal de confirmação */
 .modal {
-    display: none; /* Oculto por padrão */
+    display: none;
     position: fixed;
-    z-index: 1000; /* Fica acima de outros elementos */
+    z-index: 1000;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto; /* Habilita scroll se necessário */
-    background-color: rgba(0,0,0,0.5); /* Fundo semitransparente */
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
 }
 
 .modal-content {
     background-color: #fefefe;
-    margin: 15% auto; /* Centraliza verticalmente */
+    margin: 15% auto;
     padding: 20px;
     border: 1px solid #888;
-    width: 80%; /* Largura do modal */
-    max-width: 400px; /* Largura máxima */
+    width: 80%;
+    max-width: 400px;
     border-radius: 5px;
     text-align: center;
 }
@@ -324,32 +266,13 @@ main h2 {
 }
 
 .modal-confirm-button {
-    background-color: #dc3545; /* Vermelho */
-}
-
-.modal-confirm-button:hover {
-    background-color: #a71d2a;
+    background-color: #dc3545;
 }
 
 .modal-cancel-button {
-    background-color: #6c757d; /* Cinza */
+    background-color: #6c757d;
 }
 
-.modal-cancel-button:hover {
-    background-color: #5a6268;
-}
-
-/* Estilos para feedback visual durante o drag and drop */
-.task-item.dragging {
-    opacity: 0.5;
-    border: 2px dashed #2763ff;
-}
-
-.task-item.over {
-    border: 2px dashed #1a4bb8;
-}
-
-/* Transição suave para mostrar/ocultar a lista de tarefas concluídas */
 #task-list-completed {
     transition: opacity 0.5s ease, max-height 0.5s ease;
     overflow: hidden;
@@ -359,5 +282,5 @@ main h2 {
 
 #task-list-completed.show {
     opacity: 1;
-    max-height: 1000px; /* Valor alto para acomodar o conteúdo */
+    max-height: 1000px;
 }

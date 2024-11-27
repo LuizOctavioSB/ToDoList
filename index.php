@@ -5,12 +5,11 @@
     <meta charset="UTF-8">
     <title>Minha Lista de Tarefas</title>
     <link rel="stylesheet" href="assets/css/style.css">
-    <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet">
 </head>
 
 <body>
     <header>
-        <h1>Minha Lista de Tarefas</h1>
+        <h1>Sistema Lista de Tarefas</h1>
     </header>
     <main>
         <div id="message"></div>
@@ -24,21 +23,15 @@
         </div>
 
         <!-- Lista de Tarefas Pendentes -->
-        <h2>Tarefas Pendentes</h2>
-        <ul id="task-list-pending">
-            <!-- Tarefas pendentes serão inseridas aqui -->
-        </ul>
+        <ul id="task-list-pending"></ul>
 
         <!-- Botão para mostrar/ocultar tarefas concluídas -->
         <div class="toggle-completed">
             <button id="toggle-completed">Mostrar Tarefas Concluídas</button>
         </div>
 
-        <!-- Lista de Tarefas Concluídas (inicialmente oculta via CSS) -->
-        <h2>Tarefas Concluídas</h2>
-        <ul id="task-list-completed">
-            <!-- Tarefas concluídas serão inseridas aqui -->
-        </ul>
+        <!-- Lista de Tarefas Concluídas -->
+        <ul id="task-list-completed"></ul>
 
         <!-- Modal de Confirmação de Exclusão -->
         <div id="confirmation-modal" class="modal">
@@ -50,9 +43,7 @@
                 </div>
             </div>
         </div>
-
     </main>
-
     <script src="assets/js/script.js"></script>
 </body>
 
