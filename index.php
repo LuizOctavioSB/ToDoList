@@ -3,8 +3,9 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Minha Lista de Tarefas</title>
+    <title>Sistema Lista de Tarefas</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body>
@@ -44,6 +45,16 @@
             </div>
         </div>
     </main>
+
+    <footer id="footer-contatos">
+        <p>Luiz Octávio Sacchetin de Bortoli</p>
+        <a href="mailto:luizoctavios14@gmail.com" class="email-contact">luizoctavios14@gmail.com</a>
+        <div class="social-links">
+            <a href="https://github.com/LuizOctavioSB" target="_blank"><i class="fab fa-github"></i></a>
+            <a href="https://www.linkedin.com/in/luizoctaviosb/" target="_blank"><i class="fab fa-linkedin"></i></a>
+        </div>
+    </footer>
+
     <script src="assets/js/script.js"></script>
 </body>
 

@@ -1,13 +1,24 @@
 @import url('https://fonts.googleapis.com/css?family=Roboto&display=swap');
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+main {
+    flex: 1;
+}
 
 body {
     font-family: 'Roboto', Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
     background-color: #f5f5f5;
     margin: 0;
 }
 
 header {
-    background-color: #2763ff;
+    /* 2763ff */
+    background-color: rgb(53, 100, 175);
     color: white;
     padding: 20px;
     text-align: center;
@@ -42,14 +53,14 @@ header h1 {
 }
 
 .task-input input:focus {
-    border-bottom-color: #2763ff;
+    border-bottom-color: rgb(53, 100, 175);
 }
 
 .task-input button {
     width: 420px;
     padding: 15px;
     font-size: 16px;
-    background-color: #2763ff;
+    background-color: rgb(53, 100, 175);
     color: white;
     border: none;
     border-radius: 5px;
@@ -92,7 +103,7 @@ header h1 {
 
 .toggle-completed button {
     padding: 5px 15px;
-    background-color: #2763ff;
+    background-color: rgb(53, 100, 175);
     color: white;
     border: none;
     border-radius: 5px;
@@ -110,7 +121,7 @@ header h1 {
     -webkit-appearance: none;
     width: 20px;
     height: 20px;
-    border: 2px solid #2763ff;
+    border: 2px solid rgb(53, 100, 175);
     border-radius: 50%;
     margin-right: 15px;
     position: relative;
@@ -118,7 +129,7 @@ header h1 {
 }
 
 .task-item input[type="checkbox"]:checked {
-    background-color: #2763ff;
+    background-color: rgb(53, 100, 175);
     border: none;
 }
 
@@ -180,7 +191,6 @@ header h1 {
 }
 
 .task-item.completed span {
-    text-decoration: line-through;
     color: #888;
 }
 
@@ -195,7 +205,7 @@ header h1 {
 }
 
 .edit-input:focus {
-    border-bottom-color: #2763ff;
+    border-bottom-color: rgb(53, 100, 175);
 }
 
 .edit-inputs {
@@ -218,7 +228,7 @@ header h1 {
 }
 
 .save-button {
-    background-color: #2763ff;
+    background-color: rgb(53, 100, 175);
 }
 
 .cancel-button {
@@ -278,9 +288,54 @@ header h1 {
     overflow: hidden;
     opacity: 0;
     max-height: 0;
+    margin-bottom: 20px;
 }
 
 #task-list-completed.show {
     opacity: 1;
     max-height: 1000px;
+}
+
+footer {
+    font-size: 16px;
+    text-align: center;
+    padding: 20px 0;
+    background-color: rgb(53, 100, 175);
+    color: #ffffff;
+}
+
+footer p {
+    margin: 5px 0;
+}
+
+footer .email-contact {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+footer .email-contact:hover {
+    color: #dcdcdc;
+}
+
+footer .social-links {
+    font-size: 25px;
+    margin-top: 10px;
+}
+
+footer .social-links a {
+    color: white;
+    margin: 0 10px;
+    display: inline-block;
+}
+
+footer .social-links img {
+    width: 25px;
+    height: 25px;
+    transition: opacity 0.3s;
+}
+
+footer .social-links img:hover {
+    opacity: 0.8;
 }
