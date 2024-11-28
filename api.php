@@ -337,55 +337,45 @@ switch ($action) {
         break;
 
     case 'reorder':
-        // Atualizar a ordem de apresentação das tarefas pendentes de forma única
         $data = json_decode(file_get_contents('php://input'), true);
         $pendingIds = $data['ids'] ?? [];
 
-        // Verificar se 'ids' é um array e não está vazio
         if (!is_array($pendingIds) || empty($pendingIds)) {
-            returnError('Dados de ordem inválidos.', 400);
+            returnError('A lista de IDs fornecida é inválida.', 400);
         }
 
         try {
-            // Verificar se todos os IDs existem e são tarefas pendentes
+            // Verificar se todos os IDs fornecidos pertencem às tarefas pendentes
             $placeholders = rtrim(str_repeat('?,', count($pendingIds)), ',');
             $stmt = $pdo->prepare("SELECT id FROM tarefas WHERE id IN ($placeholders)");
             $stmt->execute($pendingIds);
-            $existingPendingIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            $validIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
 
-            // Identificar IDs que não existem ou não são pendentes
-            $invalidIds = array_diff($pendingIds, $existingPendingIds);
-            if (!empty($invalidIds)) {
-                returnError('Alguns IDs de tarefas pendentes não foram encontrados: ' . implode(', ', $invalidIds), 400);
+            // Certificar que todos os IDs fornecidos são válidos
+            if (count($validIds) !== count($pendingIds)) {
+                returnError('Um ou mais IDs fornecidos não pertencem às tarefas pendentes.', 400);
             }
 
-            // Obter todas as tarefas concluídas ordenadas por 'ordem_apresentacao' ASC
-            $stmt = $pdo->prepare('SELECT id FROM tarefas_concluidas ORDER BY ordem_apresentacao ASC');
-            $stmt->execute();
-            $completedIds = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-            // Combinar as tarefas: pendentes na nova ordem + concluídas na ordem existente
-            $allOrderedIds = array_merge($pendingIds, $completedIds);
-
-            // Iniciar transação para garantir atomicidade
+            // Iniciar uma transação para garantir consistência
             $pdo->beginTransaction();
-            try {
-                $ordem = 1;
-                foreach ($allOrderedIds as $id) {
-                    $stmt_update = $pdo->prepare('UPDATE tarefas SET ordem_apresentacao = ? WHERE id = ?');
-                    $stmt_update->execute([$ordem, $id]);
-                    $ordem++;
-                }
-                $pdo->commit();
-                echo json_encode(['success' => true]);
-            } catch (Exception $e) {
-                $pdo->rollBack();
-                error_log("Erro na transação de reorder: " . $e->getMessage());
-                returnError('Erro ao atualizar a ordem das tarefas: ' . $e->getMessage(), 500);
+
+            // Atualizar a ordem de apresentação com base nos IDs fornecidos
+            $ordem = 1;
+            foreach ($pendingIds as $id) {
+                $stmt = $pdo->prepare('UPDATE tarefas SET ordem_apresentacao = ? WHERE id = ?');
+                $stmt->execute([$ordem, $id]);
+                $ordem++;
             }
+
+            // Confirmar a transação
+            $pdo->commit();
+
+            echo json_encode(['success' => true]);
         } catch (Exception $e) {
-            error_log("Erro ao processar reorder: " . $e->getMessage());
-            returnError('Erro ao processar reorder das tarefas: ' . $e->getMessage(), 500);
+            // Reverter a transação em caso de erro
+            $pdo->rollBack();
+            error_log("Erro ao reordenar tarefas: " . $e->getMessage());
+            returnError('Erro ao reordenar tarefas. Por favor, tente novamente.', 500);
         }
         break;
 

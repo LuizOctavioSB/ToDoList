@@ -128,22 +128,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Função para renderizar as tarefas
     function renderTasks(pendentes, concluidas) {
-        // Limpar listas atuais
         taskListPending.innerHTML = '';
         taskListCompleted.innerHTML = '';
-
+    
         // Renderizar tarefas pendentes
         pendentes.forEach(task => {
             const li = createTaskElement(task, false);
+            li.setAttribute('draggable', 'true'); // Tornar arrastável
+            li.addEventListener('dragstart', dragStart);
+            li.addEventListener('dragover', dragOver);
+            li.addEventListener('drop', drop);
+            li.addEventListener('dragend', handleDragEnd);
             taskListPending.appendChild(li);
         });
-
+    
         // Renderizar tarefas concluídas
         concluidas.forEach(task => {
             const li = createTaskElement(task, true);
             taskListCompleted.appendChild(li);
         });
-    }
+    }    
 
     // Função para criar elementos de tarefa
     function createTaskElement(task, isCompleted) {
@@ -499,60 +503,50 @@ document.addEventListener('DOMContentLoaded', () => {
     // Função para reordenar as tarefas pendentes via drag and drop
     function drop(e) {
         e.preventDefault();
-        console.log('Drop:', this.dataset.id);
+    
+        // Garantir que `draggedItem` seja diferente de `this` (o item de destino)
         if (draggedItem !== this) {
-            // Obter todos os itens da lista pendente
+            // Obter todos os itens da lista de tarefas pendentes
             const items = Array.from(taskListPending.children);
+    
+            // Obter índices do item arrastado e do alvo
             const draggedIndex = items.indexOf(draggedItem);
             const targetIndex = items.indexOf(this);
-
-            // Reordenar o array de tarefas pendentes
-            const pendingTasks = tasks.filter(task => !task.concluida);
-            pendingTasks.splice(targetIndex, 0, pendingTasks.splice(draggedIndex, 1)[0]);
-
-            // Obter apenas os IDs das tarefas pendentes na nova ordem
-            const pendingIds = pendingTasks.map(task => task.id);
-            console.log('Reordering Pending IDs:', pendingIds);
-
-            // Verificar se todos os IDs são únicos
-            const uniqueIds = new Set(pendingIds);
-            if (uniqueIds.size !== pendingIds.length) {
-                messageDiv.textContent = 'Erro: IDs duplicados na reordenação.';
-                console.error('IDs duplicados:', pendingIds);
-                return;
+    
+            // Reordenar no DOM
+            if (draggedIndex < targetIndex) {
+                taskListPending.insertBefore(draggedItem, this.nextSibling);
+            } else {
+                taskListPending.insertBefore(draggedItem, this);
             }
-
-            // Enviar apenas os IDs pendentes reordenados para o backend
+    
+            // Atualizar a ordem no backend
+            const pendingIds = Array.from(taskListPending.children).map(item => parseInt(item.dataset.id, 10));
+    
+            console.log('Nova ordem de IDs pendentes:', pendingIds); // Debug
+    
             fetch('api.php?action=reorder', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ids: pendingIds })
             })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.json().then(err => { throw err; });
-                    }
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        loadTasks();
-                        console.log('Ordem das tarefas pendentes atualizada com sucesso.');
-                    } else if (data.error) {
-                        messageDiv.textContent = data.error;
+                        console.log('Ordem atualizada com sucesso.');
+                    } else {
                         console.error('Erro ao atualizar ordem:', data.error);
+                        messageDiv.textContent = 'Erro ao atualizar a ordem. Tente novamente.';
                     }
                 })
                 .catch(error => {
-                    if (error.error) {
-                        messageDiv.textContent = error.error;
-                    } else {
-                        messageDiv.textContent = 'Erro ao atualizar ordem das tarefas.';
-                    }
-                    console.error('Erro ao atualizar ordem:', error);
+                    console.error('Erro ao enviar ordem para o backend:', error);
+                    messageDiv.textContent = 'Erro ao reordenar tarefas.';
                 });
         }
-    }
+    
+        this.classList.remove('over');
+    }        
 
     function handleDragEnd(e) {
         this.classList.remove('dragging');
