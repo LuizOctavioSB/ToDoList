@@ -2,20 +2,20 @@
 
 ## Descrição
 
-O **Sistema de Lista de Tarefas** é uma aplicação web que permite aos usuários gerenciar tarefas pendentes e concluídas. Ele suporta funcionalidades como adição, edição, exclusão, e marcação de tarefas como concluídas. Além disso, possui validação e sanitização de entradas para garantir segurança contra ataques como SQL Injection e XSS.
+O **Sistema de Lista de Tarefas** é uma aplicação web desenvolvida para facilitar o gerenciamento de tarefas do usuário, permitindo a organização de tarefas pendentes e concluídas de forma prática. A aplicação inclui funcionalidades para adicionar, editar, excluir, mover entre listas e marcar como concluídas, oferecendo também segurança através da validação e sanitização de entradas, prevenindo ataques como SQL Injection e XSS.
 
 ---
 
 ## Funcionalidades
 
-- Adicionar tarefas com **nome**, **data limite** (opcional) e **custo** (opcional).
-- Listar tarefas pendentes e concluídas separadamente.
-- Editar tarefas pendentes.
-- Excluir tarefas pendentes ou concluídas.
-- Mover tarefas entre as listas de pendentes e concluídas.
-- Reorganizar tarefas pendentes com suporte a drag-and-drop.
-- Mostrar/ocultar tarefas concluídas.
-- Validação e sanitização de dados para evitar injeções SQL e XSS.
+- **Adicionar tarefas**: Cada tarefa pode ter um **nome**, **data limite** (opcional) e **custo** (opcional).
+- **Listagem de tarefas**: Exibe as tarefas **pendentes** e **concluídas** separadamente.
+- **Editar tarefas**: Permite editar informações de tarefas pendentes.
+- **Excluir tarefas**: É possível excluir tanto tarefas pendentes quanto concluídas.
+- **Mover tarefas**: Mover tarefas entre as listas de pendentes e concluídas.
+- **Reorganizar tarefas**: Suporte a **drag-and-drop** para reorganização das tarefas pendentes.
+- **Mostrar/ocultar tarefas concluídas**: Possibilidade de mostrar ou ocultar as tarefas já finalizadas.
+- **Validação e sanitização de dados**: Prevenção contra ataques como **injeção SQL** e **XSS**.
 
 ---
 
@@ -52,49 +52,6 @@ O **Sistema de Lista de Tarefas** é uma aplicação web que permite aos usuári
 ├── fatto.sql        # Script SQL para criação e configuração do banco de dados
 └── README.md        # Documentação do projeto
 ```
-
----
-
-## Endpoints da API
-
-### `GET /api.php?action=list`
-
-- **Descrição:** Retorna todas as tarefas pendentes e concluídas.
-- **Resposta:**
-  ```json
-  {
-      "pendentes": [
-          {"id": 1, "nome": "Tarefa 1", "custo": 500.00, "data_limite": "2024-12-31"},
-          ...
-      ],
-      "concluidas": [
-          {"id": 2, "nome": "Tarefa 2", "custo": 1500.00, "data_limite": "2024-11-30"},
-          ...
-      ]
-  }
-  ```
-
-### `POST /api.php?action=add`
-
-- **Descrição:** Adiciona uma nova tarefa.
-- **Campos obrigatórios:** `nome`
-- **Campos opcionais:** `custo`, `data_limite`
-
-### `POST /api.php?action=update`
-
-- **Descrição:** Atualiza uma tarefa pendente existente.
-- **Campos obrigatórios:** `id`, `nome`
-- **Campos opcionais:** `custo`, `data_limite`
-
-### `POST /api.php?action=delete`
-
-- **Descrição:** Exclui uma tarefa.
-
-### `POST /api.php?action=toggle`
-
-- **Descrição:** Alterna o status de uma tarefa (pendente/concluída).
-
----
 
 ## Segurança
 
