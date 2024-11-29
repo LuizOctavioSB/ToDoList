@@ -25,9 +25,14 @@ header {
 }
 
 header h1 {
-    font-weight: normal;
     font-size: 24px;
 }
+
+header h1 i {
+    margin-right: 10px;
+    font-size: 32px;
+}
+
 
 #message {
     text-align: center;
@@ -86,7 +91,7 @@ header h1 {
     margin: 5px 0;
     padding: 15px;
     display: flex;
-    align-items: center;
+    align-items: flex-start; /* Alinha ao topo */
     border-radius: 5px;
     transition: background-color 0.2s;
     box-sizing: border-box;
@@ -96,13 +101,23 @@ header h1 {
     background-color: #e6e6e6;
 }
 
+.task-content {
+    flex: 1;
+}
+
+.task-name {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
 .toggle-completed {
     margin: 20px 0;
     text-align: center;
 }
 
 .toggle-completed button {
-    padding: 5px 15px;
+    padding: 10px 20px;
     background-color: rgb(53, 100, 175);
     color: white;
     border: none;
@@ -114,6 +129,18 @@ header h1 {
 
 .toggle-completed button:hover {
     background-color: #1a4bb8;
+}
+
+.task-label {
+    width: 80px;
+    font-weight: bold;
+    font-size: 14px;
+    margin-right: 0px;
+}
+
+.task-value {
+    flex: 1;
+    font-size: 14px;
 }
 
 .task-item input[type="checkbox"] {
@@ -150,28 +177,39 @@ header h1 {
     font-size: 18px;
 }
 
+.task-detail-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
 .task-details {
     display: flex;
     flex-direction: column;
-    margin-left: 35px;
     color: #555;
 }
 
 .task-details span {
+    display: block;
+    margin-bottom: 5px;
     font-size: 14px;
+}
+
+.task-details span:last-child {
+    margin-bottom: 0;
 }
 
 .task-actions {
     display: flex;
     align-items: center;
-    justify-content: flex-end;
     gap: 10px;
-    margin-left: auto;
+    margin-left: 10px;
     padding: 5px;
     box-sizing: border-box;
 }
 
 .task-actions > button {
+    background: none;
     border: none;
     cursor: pointer;
     opacity: 0.5;
@@ -190,7 +228,7 @@ header h1 {
     opacity: 0.6;
 }
 
-.task-item.completed span {
+.task-item.completed .task-name {
     color: #888;
 }
 
@@ -228,11 +266,11 @@ header h1 {
 }
 
 .save-button {
-    background-color: rgb(53, 100, 175);
+    background-color: rgb(53, 100, 175) !important;
 }
 
 .cancel-button {
-    background-color: #dc3545;
+    background-color: #dc3545 !important;
 }
 
 .modal {
@@ -295,6 +333,27 @@ header h1 {
     opacity: 1;
     max-height: 1000px;
 }
+
+.include-record {
+    text-align: center;
+    margin: 20px 0;
+}
+
+.include-record button {
+    padding: 10px 20px;
+    background-color: rgb(53, 100, 175);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease;
+}
+
+.include-record button:hover {
+    background-color: #1a4bb8;
+}
+
 
 footer {
     font-size: 16px;

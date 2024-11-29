@@ -10,6 +10,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const confirmDeleteButton = document.getElementById('confirm-delete');
     const cancelDeleteButton = document.getElementById('cancel-delete');
     const toggleCompletedButton = document.getElementById('toggle-completed');
+    const includeRecordDiv = document.getElementById('include-record');
+    const includeRecordButton = document.getElementById('include-record-button');
+    const taskInputForm = document.getElementById('task-input-form');
     let showCompleted = false;
     let tasks = [];
     let currentTaskToDelete = null;
@@ -29,16 +32,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    includeRecordButton.addEventListener('click', () => {
+        taskInputForm.scrollIntoView({ behavior: 'smooth' });
+        taskInput.focus();
+    });
+
+    function isElementInViewport(el) {
+        const rect = el.getBoundingClientRect();
+        return (
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+            rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+        );
+    }
+
+    function toggleIncludeRecordButton() {
+        if (!isElementInViewport(taskInputForm)) {
+            includeRecordDiv.style.display = 'block';
+        } else {
+            includeRecordDiv.style.display = 'none';
+        }
+    }
+
+    window.addEventListener('scroll', toggleIncludeRecordButton);
+    window.addEventListener('resize', toggleIncludeRecordButton);
+
+    toggleIncludeRecordButton();
+
     // Adicionar evento ao botão para mostrar/ocultar tarefas concluídas
     toggleCompletedButton.addEventListener('click', () => {
         showCompleted = !showCompleted;
         toggleCompletedButton.textContent = showCompleted ? 'Ocultar Tarefas Concluídas' : 'Mostrar Tarefas Concluídas';
         toggleCompletedButton.classList.toggle('active', showCompleted);
-        
+
         if (showCompleted) {
             taskListCompleted.classList.add('show');
+            taskListCompleted.parentNode.insertBefore(includeRecordDiv, taskListCompleted.nextSibling);
         } else {
             taskListCompleted.classList.remove('show');
+            toggleCompletedButton.parentNode.insertBefore(includeRecordDiv, toggleCompletedButton.nextSibling);
         }
     });
 
@@ -167,41 +200,73 @@ document.addEventListener('DOMContentLoaded', () => {
             checkbox.className = 'task-checkbox';
             checkbox.checked = false;
             checkbox.addEventListener('change', () => {
-                toggleTaskCompletion(task.id, checkbox.checked);
+                toggleTaskCompletion(task.id, checkbox.checked, checkbox);
             });
             li.appendChild(checkbox);
         }
     
+        // Contêiner principal da tarefa
+        const taskContent = document.createElement('div');
+        taskContent.className = 'task-content';
+    
         // Nome da tarefa
-        const nameElement = document.createElement('span');
+        const nameElement = document.createElement('div');
+        nameElement.className = 'task-name';
         nameElement.textContent = task.nome;
         if (isCompleted) {
             nameElement.classList.add('completed');
         }
-        li.appendChild(nameElement);
+        taskContent.appendChild(nameElement);
     
         // Detalhes da tarefa
         const detailsDiv = document.createElement('div');
         detailsDiv.className = 'task-details';
     
-        // Adicionar data limite, se presente
+        // Data Limite
+        const dateRow = document.createElement('div');
+        dateRow.className = 'task-detail-row';
+    
+        const dateLabel = document.createElement('span');
+        dateLabel.className = 'task-label';
+        dateLabel.textContent = 'Data Limite:';
+    
+        const dateValue = document.createElement('span');
+        dateValue.className = 'task-value';
         if (task.data_limite && task.data_limite !== '0000-00-00') {
-            const dateSpan = document.createElement('span');
-            dateSpan.textContent = 'Data Limite: ' + formatDate(task.data_limite);
-            detailsDiv.appendChild(dateSpan);
+            dateValue.textContent = formatDate(task.data_limite);
+        } else {
+            dateValue.textContent = ''; // Valor vazio
         }
     
-        // Adicionar custo, se presente
-        if (task.custo !== undefined && task.custo > 0) {
-            const costSpan = document.createElement('span');
-            costSpan.textContent = 'Custo: R$ ' + formatCostToDisplay(task.custo);
-            detailsDiv.appendChild(costSpan);
+        dateRow.appendChild(dateLabel);
+        dateRow.appendChild(dateValue);
+        detailsDiv.appendChild(dateRow);
+    
+        // Custo
+        const costRow = document.createElement('div');
+        costRow.className = 'task-detail-row';
+    
+        const costLabel = document.createElement('span');
+        costLabel.className = 'task-label';
+        costLabel.textContent = 'Custo:';
+    
+        const costValue = document.createElement('span');
+        costValue.className = 'task-value';
+        if (task.custo !== undefined && task.custo !== null) {
+            costValue.textContent = 'R$ ' + formatCostToDisplay(task.custo);
+        } else {
+            costValue.textContent = ''; // Valor vazio
         }
     
-        // Adicionar os detalhes somente se houver informações
-        if (detailsDiv.childNodes.length > 0) {
-            li.appendChild(detailsDiv);
-        }
+        costRow.appendChild(costLabel);
+        costRow.appendChild(costValue);
+        detailsDiv.appendChild(costRow);
+    
+        // Adicionar os detalhes ao conteúdo da tarefa
+        taskContent.appendChild(detailsDiv);
+    
+        // Adicionar o conteúdo da tarefa ao elemento li
+        li.appendChild(taskContent);
     
         // Div para botões de ação
         const actionsDiv = document.createElement('div');
@@ -223,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Botão de excluir (para todas as tarefas)
         const deleteButton = document.createElement('button');
         const deleteIcon = document.createElement('img');
-            deleteIcon.src = 'assets/icons/delete.svg';
+        deleteIcon.src = 'assets/icons/delete.svg';
         deleteIcon.alt = 'Excluir';
         deleteButton.appendChild(deleteIcon);
         deleteButton.addEventListener('click', () => {
@@ -231,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         actionsDiv.appendChild(deleteButton);
     
+        // Adicionar os botões de ação ao elemento li
         li.appendChild(actionsDiv);
     
         // Aplicar classe 'completed' se a tarefa já estiver concluída
@@ -239,8 +305,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     
         return li;
-    }
-       
+    }          
 
     function toggleTaskCompletion(taskId, isCompleted, checkboxElement) {
         fetch('api.php?action=toggle', {
@@ -466,28 +531,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function formatCostToDisplay(value) {
-        if (isNaN(value)) {
-            return '0,00';
+        if (isNaN(value) || value === null) {
+            return '';
         }
-
+    
         let valueString = parseFloat(value).toFixed(2);
-
+    
         valueString = valueString.replace('.', ',');
-
+    
         let parts = valueString.split(',');
         let integerPart = parts[0];
         let decimalPart = parts[1];
-
+    
         integerPart = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
+    
         return integerPart + ',' + decimalPart;
-    }
+    }    
 
     // Funções de drag and drop
     let draggedItem = null;
 
     function dragStart(e) {
-        console.log('Drag Start:', this.dataset.id);
         draggedItem = this;
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', this.dataset.id);
@@ -523,22 +587,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Atualizar a ordem no backend
             const pendingIds = Array.from(taskListPending.children).map(item => parseInt(item.dataset.id, 10));
     
-            console.log('Nova ordem de IDs pendentes:', pendingIds); // Debug
-    
             fetch('api.php?action=reorder', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ids: pendingIds })
             })
                 .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        console.log('Ordem atualizada com sucesso.');
-                    } else {
-                        console.error('Erro ao atualizar ordem:', data.error);
-                        messageDiv.textContent = 'Erro ao atualizar a ordem. Tente novamente.';
-                    }
-                })
                 .catch(error => {
                     console.error('Erro ao enviar ordem para o backend:', error);
                     messageDiv.textContent = 'Erro ao reordenar tarefas.';
