@@ -12,10 +12,12 @@ function returnError($message = 'Ocorreu um erro.', $code = 400)
 
 $action = $_GET['action'] ?? '';
 
-// Função para sanitizar entradas
 function sanitizeInput($input)
 {
-    return htmlspecialchars(strip_tags(trim($input)), ENT_QUOTES, 'UTF-8');
+    if ($input === null) {
+        return null;
+    }
+    return trim($input);
 }
 
 // Função para validar o formato de uma data
@@ -33,13 +35,13 @@ switch ($action) {
             $stmt = $pdo->prepare('SELECT id, nome, custo, data_limite, ordem_apresentacao FROM tarefas ORDER BY ordem_apresentacao ASC');
             $stmt->execute();
             $tarefas_pendentes = array_map(function ($tarefa) {
-                return array_filter([
+                return [
                     'id' => (int)$tarefa['id'],
-                    'nome' => htmlspecialchars($tarefa['nome'], ENT_QUOTES, 'UTF-8'),
+                    'nome' => $tarefa['nome'], // Removido htmlspecialchars
                     'custo' => $tarefa['custo'] !== null ? (float)$tarefa['custo'] : null,
-                    'data_limite' => $tarefa['data_limite'] !== null ? htmlspecialchars($tarefa['data_limite'], ENT_QUOTES, 'UTF-8') : null,
+                    'data_limite' => $tarefa['data_limite'] ?? null,
                     'ordem_apresentacao' => (int)$tarefa['ordem_apresentacao']
-                ], fn($value) => $value !== null); // Remove campos nulos
+                ];
             }, $stmt->fetchAll(PDO::FETCH_ASSOC));
 
             // Obter tarefas concluídas
@@ -60,6 +62,7 @@ switch ($action) {
                 'concluidas' => $tarefas_concluidas
             ];
 
+            header('Content-Type: application/json; charset=UTF-8');
             echo json_encode($result);
         } catch (Exception $e) {
             error_log("Erro ao listar tarefas: " . $e->getMessage());
@@ -67,32 +70,24 @@ switch ($action) {
         }
         break;
 
-
     case 'add':
-        $data = json_decode(file_get_contents('php://input'), true);
-        $nome = sanitizeInput($data['nome'] ?? '');
-        $custo = floatval($data['custo'] ?? 0);
-        $data_limite = sanitizeInput($data['data_limite'] ?? null);
-
-        if (empty($nome)) {
-            returnError('O nome da tarefa é obrigatório.', 400);
-        }
-        if (strlen($nome) > 255) {
-            returnError('O nome da tarefa não pode exceder 255 caracteres.', 400);
-        }
-        if ($custo < 0) {
-            returnError('O custo deve ser um valor positivo.', 400);
-        }
-        if ($data_limite && !isValidDate($data_limite)) {
-            returnError('A data limite fornecida é inválida.', 400);
-        }
-
         try {
-            // Verificar duplicação de nome na tabela 'tarefas'
-            $stmt = $pdo->prepare('SELECT COUNT(*) FROM tarefas WHERE LOWER(nome) = LOWER(?)');
-            $stmt->execute([$nome]);
-            if ($stmt->fetchColumn() > 0) {
-                returnError('Já existe uma tarefa pendente com esse nome.', 400);
+            $data = json_decode(file_get_contents('php://input'), true);
+            $nome = sanitizeInput($data['nome'] ?? '');
+            $custo = floatval($data['custo'] ?? 0);
+            $data_limite = sanitizeInput($data['data_limite'] ?? null);
+
+            if (empty($nome)) {
+                returnError('O nome da tarefa é obrigatório.', 400);
+            }
+            if (strlen($nome) > 255) {
+                returnError('O nome da tarefa não pode exceder 255 caracteres.', 400);
+            }
+            if ($custo < 0) {
+                returnError('O custo deve ser um valor positivo.', 400);
+            }
+            if (!empty($data_limite) && !isValidDate($data_limite)) {
+                returnError('A data limite fornecida é inválida.', 400);
             }
 
             // Obter a próxima ordem de apresentação
@@ -100,9 +95,20 @@ switch ($action) {
             $stmt->execute();
             $ordem = intval($stmt->fetchColumn());
 
-            // Inserir a nova tarefa na tabela 'tarefas'
-            $stmt = $pdo->prepare('INSERT INTO tarefas (nome, custo, data_limite, ordem_apresentacao) VALUES (?, ?, ?, ?)');
-            $stmt->execute([$nome, $custo, $data_limite, $ordem]);
+            // Inserir a nova tarefa na tabela 'tarefas' usando bindValue
+            $stmt = $pdo->prepare('INSERT INTO tarefas (nome, custo, data_limite, ordem_apresentacao) VALUES (:nome, :custo, :data_limite, :ordem)');
+            $stmt->bindValue(':nome', $nome);
+            $stmt->bindValue(':custo', $custo);
+            $stmt->bindValue(':ordem', $ordem, PDO::PARAM_INT);
+
+            // Verificar se data_limite é nulo ou vazio
+            if (!empty($data_limite)) {
+                $stmt->bindValue(':data_limite', $data_limite);
+            } else {
+                $stmt->bindValue(':data_limite', null, PDO::PARAM_NULL);
+            }
+
+            $stmt->execute();
 
             echo json_encode(['success' => true]);
         } catch (Exception $e) {
@@ -156,7 +162,7 @@ switch ($action) {
             echo json_encode(['success' => true]);
         } catch (Exception $e) {
             error_log("Erro ao atualizar tarefa: " . $e->getMessage());
-            returnError('Erro ao atualizar tarefa.', 500);
+            returnError('Erro ao atualizar tarefa.' . $e->getMessage(), 500);
         }
         break;
 
@@ -233,7 +239,7 @@ switch ($action) {
                 } catch (Exception $e) {
                     $pdo->rollBack();
                     error_log("Erro ao reordenar tarefas concluídas após exclusão: " . $e->getMessage());
-                    returnError('Erro ao reordenar tarefas concluídas após exclusão.', 500);
+                    returnError('Erro ao reordenar tarefas concluídas após exclusão.' . $e->getMessage(), 500);
                 }
 
                 echo json_encode(['success' => true]);
@@ -244,7 +250,7 @@ switch ($action) {
             returnError('Tarefa não encontrada em nenhuma tabela.', 404);
         } catch (Exception $e) {
             error_log("Erro ao excluir tarefa: " . $e->getMessage());
-            returnError('Erro ao excluir tarefa.', 500);
+            returnError('Erro ao excluir tarefa.' . $e->getMessage(), 500);
         }
         break;
 
@@ -286,7 +292,7 @@ switch ($action) {
                 } catch (Exception $e) {
                     $pdo->rollBack();
                     error_log("Erro ao marcar tarefa como concluída: " . $e->getMessage());
-                    returnError('Erro ao marcar tarefa como concluída.', 500);
+                    returnError('Erro ao marcar tarefa como concluída.' . $e->getMessage(), 500);
                 }
             } else {
                 // Marcar como pendente: mover de 'tarefas_concluidas' para 'tarefas'
@@ -327,12 +333,12 @@ switch ($action) {
                 } catch (Exception $e) {
                     $pdo->rollBack();
                     error_log("Erro ao mover tarefa para pendentes: " . $e->getMessage());
-                    returnError('Erro ao mover tarefa para pendentes.', 500);
+                    returnError('Erro ao mover tarefa para pendentes.' . $e->getMessage(), 500);
                 }
             }
         } catch (Exception $e) {
             error_log("Erro ao alternar status da tarefa: " . $e->getMessage());
-            returnError('Erro ao alternar status da tarefa.', 500);
+            returnError('Erro ao alternar status da tarefa.' . $e->getMessage(), 500);
         }
         break;
 
@@ -375,7 +381,7 @@ switch ($action) {
             // Reverter a transação em caso de erro
             $pdo->rollBack();
             error_log("Erro ao reordenar tarefas: " . $e->getMessage());
-            returnError('Erro ao reordenar tarefas. Por favor, tente novamente.', 500);
+            returnError('Erro ao reordenar tarefas. Por favor, tente novamente.' . $e->getMessage(), 500);
         }
         break;
 
